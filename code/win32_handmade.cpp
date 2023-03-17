@@ -27,6 +27,8 @@ struct win32_window_dimension
 
 global_variable bool GlobalRunning;
 global_variable win32_offscreen_buffer GlobalBackbuffer;
+global_variable LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
+
 
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE *pState)
 typedef X_INPUT_GET_STATE(x_input_get_state);
@@ -127,8 +129,7 @@ Win32InitDSound(HWND Window, int32_t SamplesPerSecond, int32_t BufferSize)
             BufferDescription.dwFlags = 0;
             BufferDescription.dwBufferBytes = BufferSize;
             BufferDescription.lpwfxFormat = &WaveFormat;
-            LPDIRECTSOUNDBUFFER SecondaryBuffer;
-            if (SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescription, &SecondaryBuffer, 0)))
+            if (SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescription, &GlobalSecondaryBuffer, 0)))
             {
                 OutputDebugStringA("Secondary buffer created successfully.\n");
             }
