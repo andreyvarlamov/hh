@@ -326,6 +326,10 @@ WinMain(HINSTANCE Instance,
 
                           int16_t StickX = Pad->sThumbLX;
                           int16_t StickY = Pad->sThumbLY;
+
+                          XOffset += StickX >> 12;
+                          YOffset += StickY >> 12;
+
                      }
                      else
                      {
@@ -334,7 +338,6 @@ WinMain(HINSTANCE Instance,
                 }
 
                 RenderWeirdGradient(&GlobalBackbuffer, XOffset, YOffset);
-                ++XOffset;
 
                 HDC DeviceContext = GetDC(Window);
 
