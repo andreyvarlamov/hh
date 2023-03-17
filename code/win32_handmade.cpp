@@ -46,7 +46,7 @@ global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 internal void
 Win32LoadXInput(void)
 {
-    HMODULE XInputLibrary = LoadLibrary("xinput1_3.dll");
+    HMODULE XInputLibrary = LoadLibraryA("xinput1_3.dll");
     if (XInputLibrary)
     {
         XInputGetState = (x_input_get_state *)GetProcAddress(XInputLibrary, "XInputGetState");
@@ -68,16 +68,16 @@ Win32GetWindowDimension(HWND Window)
 }
 
 internal void
-RenderWeirdGradient(win32_offscreen_buffer Buffer, int XOffset, int YOffset)
+RenderWeirdGradient(win32_offscreen_buffer *Buffer, int XOffset, int YOffset)
 {
-    uint8_t *Row = (uint8_t *)Buffer.Memory;
+    uint8_t *Row = (uint8_t *)Buffer->Memory;
     for (int Y = 0;
-         Y < Buffer.Height;
+         Y < Buffer->Height;
          ++Y)
     {
         uint32_t *Pixel = (uint32_t *)Row;
         for (int X = 0;
-             X < Buffer.Width;
+             X < Buffer->Width;
              ++X)
         {
             uint8_t Blue = (X + XOffset);
@@ -86,7 +86,7 @@ RenderWeirdGradient(win32_offscreen_buffer Buffer, int XOffset, int YOffset)
             *Pixel++ = (Green << 8) | Blue;
         }
 
-        Row += Buffer.Pitch;
+        Row += Buffer->Pitch;
     }
 }
 
@@ -118,16 +118,15 @@ Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, int Height)
 }
 
 internal void
-Win32DisplayBufferInWindow(HDC DeviceContext, int WindowWidth, int WindowHeight,
-                           win32_offscreen_buffer Buffer,
-                           int X, int Y, int Width, int Height)
+Win32DisplayBufferInWindow(win32_offscreen_buffer *Buffer,
+                           HDC DeviceContext, int WindowWidth, int WindowHeight)
 {
     // TODO: Aspect ratio correction
     StretchDIBits(DeviceContext,
                   0, 0, WindowWidth, WindowHeight,
-                  0, 0, Buffer.Width, Buffer.Height,
-                  Buffer.Memory,
-                  &Buffer.Info,
+                  0, 0, Buffer->Width, Buffer->Height,
+                  Buffer->Memory,
+                  &Buffer->Info,
                   DIB_RGB_COLORS, SRCCOPY);
 }
 
@@ -234,9 +233,9 @@ Win32MainWindowCallback(HWND Window,
 
             win32_window_dimension Dimension = Win32GetWindowDimension(Window);
 
-            Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height,
-                                       GlobalBackbuffer,
-                                       X, Y, Width, Height);
+            Win32DisplayBufferInWindow(&GlobalBackbuffer,
+                                       DeviceContext, Dimension.Width, Dimension.Height);
+           
             EndPaint(Window, &Paint);
         } break;
 
@@ -258,7 +257,7 @@ WinMain(HINSTANCE Instance,
 {
     Win32LoadXInput();
 
-    WNDCLASS WindowClass = {};
+    WNDCLASSA WindowClass = {};
 
     Win32ResizeDIBSection(&GlobalBackbuffer, 1280, 720);
     
@@ -334,14 +333,15 @@ WinMain(HINSTANCE Instance,
                      }
                 }
 
-                RenderWeirdGradient(GlobalBackbuffer, XOffset, YOffset);
+                RenderWeirdGradient(&GlobalBackbuffer, XOffset, YOffset);
                 ++XOffset;
 
                 HDC DeviceContext = GetDC(Window);
 
                 win32_window_dimension Dimension = Win32GetWindowDimension(Window) ;
-                Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, GlobalBackbuffer,
-                                           0, 0, Dimension.Width, Dimension.Height);
+                Win32DisplayBufferInWindow(&GlobalBackbuffer,
+                                           DeviceContext, Dimension.Width, Dimension.Height);
+
                 ReleaseDC(Window, DeviceContext);
             }
         }
