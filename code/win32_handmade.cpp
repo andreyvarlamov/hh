@@ -3,6 +3,7 @@
 #include <xinput.h>
 #include <dsound.h>
 #include <math.h>
+#include <stdio.h>
 
 #define internal static
 #define local_persist static
@@ -439,6 +440,10 @@ WinMain(HINSTANCE Instance,
         LPSTR CommandLine,
         int ShowCode)
 {
+    LARGE_INTEGER PerfCountFrequencyResult;
+    QueryPerformanceFrequency(&PerfCountFrequencyResult);
+    int64 PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
+    
     Win32LoadXInput();
 
     WNDCLASSA WindowClass = {};
@@ -490,9 +495,13 @@ WinMain(HINSTANCE Instance,
             Win32FillSoundBuffer(&SoundOutput, 0, SoundOutput.LatencySampleCount*SoundOutput.BytesPerSample);
             GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
+            LARGE_INTEGER LastCounter;
+            QueryPerformanceCounter(&LastCounter);
+            uint64 LastCycleCount = __rdtsc();
             GlobalRunning = true;
             while(GlobalRunning)
             {
+                
                 MSG Message;
                 while(PeekMessage(&Message, 0, 0, 0, PM_REMOVE))
                 {
@@ -566,6 +575,24 @@ WinMain(HINSTANCE Instance,
                 win32_window_dimension Dimension = Win32GetWindowDimension(Window) ;
                 Win32DisplayBufferInWindow(&GlobalBackbuffer,
                                            DeviceContext, Dimension.Width, Dimension.Height);
+
+                uint64 EndCycleCount = __rdtsc();
+
+                LARGE_INTEGER EndCounter;
+                QueryPerformanceCounter(&EndCounter);
+
+                uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
+                int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
+                real64 MSPerFrame = ((1000.0*(real64)CounterElapsed) / (real64)PerfCountFrequency);
+                real64 FPS = (real64)PerfCountFrequency / (real64)CounterElapsed;
+                real64 MCPF = ((real64)CyclesElapsed / (1000.0*1000.0));
+                
+                char Buffer[256];
+                sprintf(Buffer, "%.02fms/f, %.02ff/s, %.02fMc/f\n", MSPerFrame, FPS, MCPF);
+                OutputDebugStringA(Buffer);
+
+                LastCounter = EndCounter;
+                LastCycleCount = EndCycleCount;
             }
 
             ReleaseDC(Window, DeviceContext);
