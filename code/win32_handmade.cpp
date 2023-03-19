@@ -73,7 +73,7 @@ DEBUGPlatformReadEntireFile(char *Filename)
             if (Result.Contents)
             {
                 DWORD BytesRead;
-                if (ReadFile(FileHandle, Result.Contents, FileSize.QuadPart, &BytesRead, 0) &&
+                if (ReadFile(FileHandle, Result.Contents, FileSize32, &BytesRead, 0) &&
                     (FileSize32 == BytesRead))
                 {
                     Result.ContentsSize = FileSize32;
@@ -337,7 +337,7 @@ Win32MainWindowCallback(HWND Window,
         case WM_KEYDOWN:
         case WM_KEYUP:
         {
-            uint32 VKCode = WParam;
+            uint32 VKCode = (uint32)WParam;
             bool WasDown = ((LParam & (1 <<  30)) != 0);
             bool IsDown = ((LParam & (1 << 31)) == 0);
 
@@ -403,10 +403,6 @@ Win32MainWindowCallback(HWND Window,
         {
             PAINTSTRUCT Paint;
             HDC DeviceContext = BeginPaint(Window, &Paint);
-            int X = Paint.rcPaint.left;
-            int Y = Paint.rcPaint.top;
-            int Width = Paint.rcPaint.right - Paint.rcPaint.left;
-            int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
 
             win32_window_dimension Dimension = Win32GetWindowDimension(Window);
 
@@ -573,7 +569,7 @@ WinMain(HINSTANCE Instance,
             GameMemory.PermanentStorageSize = Megabytes(64);
             GameMemory.TransientStorageSize = Gigabytes((uint64)4);
             uint64 TotalSize = GameMemory.PermanentStorageSize + GameMemory.TransientStorageSize;
-            GameMemory.PermanentStorage = VirtualAlloc(BaseAddress, TotalSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            GameMemory.PermanentStorage = VirtualAlloc(BaseAddress, (size_t)TotalSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
             GameMemory.TransientStorage = ((uint8 *)GameMemory.PermanentStorage + GameMemory.PermanentStorageSize);
             
             if (Samples && GameMemory.PermanentStorage && GameMemory.TransientStorage)
@@ -600,7 +596,7 @@ WinMain(HINSTANCE Instance,
                         TranslateMessage(&Message);
                         DispatchMessage(&Message);
                     }
-                    int MaxControllerCount = XUSER_MAX_COUNT;
+                    DWORD MaxControllerCount = XUSER_MAX_COUNT;
                     if (MaxControllerCount > ArrayCount(NewInput->Controllers))
                     {
                         MaxControllerCount = ArrayCount(NewInput->Controllers);
@@ -619,13 +615,22 @@ WinMain(HINSTANCE Instance,
                         {
                             XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
 
-                            bool Up = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
-                            bool Down = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
-                            bool Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
-                            bool Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+                            /*
+                              bool Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
+                              bool Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
+                              bool LeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
+                              bool RightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
+                              bool AButton = (Pad->wButtons & XINPUT_GAMEPAD_A);
+                              bool BButton = (Pad->wButtons & XINPUT_GAMEPAD_B);
+                              bool XButton = (Pad->wButtons & XINPUT_GAMEPAD_X);
+                              bool YButton = (Pad->wButtons & XINPUT_GAMEPAD_Y);
+                              bool Up = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
+                              bool Down = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+                              bool Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+                              bool Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+                            */
 
                             real32 X;
-                            real32 Y;
                             if (Pad->sThumbLX < 0)
                             {
                                 X = (real32)Pad->sThumbLX / 32768.0f;
@@ -634,7 +639,8 @@ WinMain(HINSTANCE Instance,
                             {
                                 X = (real32)Pad->sThumbLX / 32767.0f;
                             }
-                            real32 y;
+                            
+                            real32 Y;
                             if (Pad->sThumbLY < 0)
                             {
                                 Y = (real32)Pad->sThumbLY / 32768.0f;
@@ -650,9 +656,6 @@ WinMain(HINSTANCE Instance,
 
                             NewController->MinX = NewController->MaxX = NewController->EndX = X;
                             NewController->MinY = NewController->MaxY = NewController->EndY = Y;
-                        
-                            int16 StickX = Pad->sThumbLX;
-                            int16 StickY = Pad->sThumbLY;
 
                             ProcessXInputDigitalButton(Pad->wButtons,
                                                        &OldController->Down, XINPUT_GAMEPAD_A,
@@ -672,16 +675,6 @@ WinMain(HINSTANCE Instance,
                             ProcessXInputDigitalButton(Pad->wButtons,
                                                        &OldController->RightShoulder, XINPUT_GAMEPAD_RIGHT_SHOULDER,
                                                        &NewController->RightShoulder);
-                          
-                            bool Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
-                            bool Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
-                            bool LeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
-                            bool RightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
-                            bool AButton = (Pad->wButtons & XINPUT_GAMEPAD_A);
-                            bool BButton = (Pad->wButtons & XINPUT_GAMEPAD_B);
-                            bool XButton = (Pad->wButtons & XINPUT_GAMEPAD_X);
-                            bool YButton = (Pad->wButtons & XINPUT_GAMEPAD_Y);
-
                         }
                         else
                         {
@@ -747,11 +740,13 @@ WinMain(HINSTANCE Instance,
                     real64 MSPerFrame = ((1000.0*(real64)CounterElapsed) / (real64)PerfCountFrequency);
                     real64 FPS = (real64)PerfCountFrequency / (real64)CounterElapsed;
                     real64 MCPF = ((real64)CyclesElapsed / (1000.0*1000.0));
-                
-                    char TimingDebug[256];
-                    sprintf(TimingDebug, "%.02fms/f, %.02ff/s, %.02fMc/f\n", MSPerFrame, FPS, MCPF);
-                    OutputDebugStringA(TimingDebug);
 
+#if 0
+                    char TimingDebug[256];
+                    sprintf_s(TimingDebug, "%.02fms/f, %.02ff/s, %.02fMc/f\n", MSPerFrame, FPS, MCPF);
+                    OutputDebugStringA(TimingDebug);
+#endif
+                    
                     LastCounter = EndCounter;
                     LastCycleCount = EndCycleCount;
 
