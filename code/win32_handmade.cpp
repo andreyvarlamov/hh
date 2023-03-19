@@ -829,29 +829,34 @@ WinMain(HINSTANCE Instance,
                     LARGE_INTEGER WorkCounter = Win32GetWallClock();
                     real32 WorkSecondsElapsed = Win32GetSecondsElapsed(LastCounter, WorkCounter);
 
+                    uint64 Spins = 0;
+
                     real32 SecondsElapsedForFrame = WorkSecondsElapsed;
                     if (SecondsElapsedForFrame < TargetSecondsPerFrame)
                     {
                         if (SleepIsGranular)
                         {
-                            DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame - SecondsElapsedForFrame));
+                            DWORD SleepMS = ((DWORD)(1000.0f * (TargetSecondsPerFrame - SecondsElapsedForFrame)) - 1);
                             if (SleepMS > 0)
                             {
                                 Sleep(SleepMS);
                             }
-                        }
 
-#if 0
-                        real32 TestSecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter,
+#if 1
+                            real32 TestSecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter,
                                                                                    Win32GetWallClock());
 
-                        Assert(TestSecondsElapsedForFrame < TargetSecondsPerFrame);
+                            Assert(TestSecondsElapsedForFrame < TargetSecondsPerFrame);
 #endif
+                        }
                         
                         while (SecondsElapsedForFrame < TargetSecondsPerFrame)
                         {
                             SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter,
                                                                             Win32GetWallClock());
+#if HANDMADE_INTERNAL
+                            ++Spins;
+#endif
                         }
                     }
                     else
@@ -879,7 +884,8 @@ WinMain(HINSTANCE Instance,
                     real64 MCPF = ((real64)CyclesElapsed / (1000.0*1000.0));
 
                     char FPSBuffer[256];
-                    sprintf_s(FPSBuffer, "%.02fms/f, %.02ff/s, %.02fMc/f\n", MSPerFrame, FPS, MCPF);
+                    sprintf_s(FPSBuffer, "%.02fms/f, %.02ff/s, %.02fMc/f, Work=%.02fms, Spins=%llu\n",
+                              MSPerFrame, FPS, MCPF, 1000.0f*WorkSecondsElapsed, Spins);
                     OutputDebugStringA(FPSBuffer);
                 }
 
