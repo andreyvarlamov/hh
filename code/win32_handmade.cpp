@@ -832,13 +832,24 @@ WinMain(HINSTANCE Instance,
                     real32 SecondsElapsedForFrame = WorkSecondsElapsed;
                     if (SecondsElapsedForFrame < TargetSecondsPerFrame)
                     {
-                        while (SecondsElapsedForFrame < TargetSecondsPerFrame)
+                        if (SleepIsGranular)
                         {
-                            if (SleepIsGranular)
+                            DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame - SecondsElapsedForFrame));
+                            if (SleepMS > 0)
                             {
-                                DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame - SecondsElapsedForFrame));
                                 Sleep(SleepMS);
                             }
+                        }
+
+#if 0
+                        real32 TestSecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter,
+                                                                                   Win32GetWallClock());
+
+                        Assert(TestSecondsElapsedForFrame < TargetSecondsPerFrame);
+#endif
+                        
+                        while (SecondsElapsedForFrame < TargetSecondsPerFrame)
+                        {
                             SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter,
                                                                             Win32GetWallClock());
                         }
