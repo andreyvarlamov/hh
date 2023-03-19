@@ -85,7 +85,7 @@ struct game_controller_input
 
     union
     {
-        game_button_state Buttons[10];
+        game_button_state Buttons[12];
         struct
         {
             game_button_state MoveUp;
@@ -103,6 +103,9 @@ struct game_controller_input
 
             game_button_state Back;
             game_button_state Start;
+
+            // NOTE: Add all buttons above this line
+            game_button_state Terminator;
         };
     };
 };
@@ -112,7 +115,7 @@ struct game_input
     // TODO: Insert clock value here
     game_controller_input Controllers[5];
 };
-inline game_controller_input *GetController(game_input *Input, int ControllerIndex)
+inline game_controller_input *GetController(game_input *Input, int unsigned ControllerIndex)
 {
     Assert(ControllerIndex < ArrayCount(Input->Controllers));
     game_controller_input *Result = &Input->Controllers[ControllerIndex];
