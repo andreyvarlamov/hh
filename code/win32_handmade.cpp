@@ -34,7 +34,7 @@ typedef double real64;
 global_variable bool GlobalRunning;
 global_variable win32_offscreen_buffer GlobalBackbuffer;
 global_variable LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
-
+global_variable int64 GlobalPerfCountFrequency;
 
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE *pState)
 typedef X_INPUT_GET_STATE(x_input_get_state);
@@ -560,6 +560,22 @@ Win32ProcessPendingMessages(game_controller_input *KeyboardController)
     }
 }
 
+inline LARGE_INTEGER
+Win32GetWallClock(void)
+{
+    LARGE_INTEGER Result;
+    QueryPerformanceCounter(&Result);
+    return(Result);
+}
+
+inline real32
+Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
+{
+    real32 Result = ((real32)(End.QuadPart - Start.QuadPart) /
+                     (real32)GlobalPerfCountFrequency);
+    return(Result);
+}
+
 int CALLBACK
 WinMain(HINSTANCE Instance,
         HINSTANCE PrevInstance,
@@ -568,7 +584,7 @@ WinMain(HINSTANCE Instance,
 {
     LARGE_INTEGER PerfCountFrequencyResult;
     QueryPerformanceFrequency(&PerfCountFrequencyResult);
-    int64 PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
+    GlobalPerfCountFrequency = PerfCountFrequencyResult.QuadPart;
     
     Win32LoadXInput();
 
@@ -582,6 +598,11 @@ WinMain(HINSTANCE Instance,
     //WindowClass.hIcon;
     WindowClass.lpszClassName = "HandmadeHeroWindowClass";
 
+    // TODO: How to query this on Windows reliably?
+    int MonitorRefreshHz = 60;
+    int GameUpdateHz = MonitorRefreshHz / 2;
+    real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
+    
     if(RegisterClassA(&WindowClass))
     {
         HWND Window =
@@ -634,8 +655,7 @@ WinMain(HINSTANCE Instance,
                 game_input *NewInput = &Input[0];
                 game_input *OldInput = &Input[1];
             
-                LARGE_INTEGER LastCounter;
-                QueryPerformanceCounter(&LastCounter);
+                LARGE_INTEGER LastCounter = Win32GetWallClock();
                 uint64 LastCycleCount = __rdtsc();
                 GlobalRunning = true;
                 while(GlobalRunning)
@@ -804,29 +824,35 @@ WinMain(HINSTANCE Instance,
                     Win32DisplayBufferInWindow(&GlobalBackbuffer,
                                                DeviceContext, Dimension.Width, Dimension.Height);
 
-                    uint64 EndCycleCount = __rdtsc();
+                    LARGE_INTEGER WorkCounter = Win32GetWallClock();
+                    real32 WorkSecondsElapsed = Win32GetSecondsElapsed(LastCounter, WorkCounter);
 
-                    LARGE_INTEGER EndCounter;
-                    QueryPerformanceCounter(&EndCounter);
-
-                    uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
-                    int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
+                    real32 SecondsElapsedForFrame = WorkSecondsElapsed;
+                    while (SecondsElapsedForFrame < TargetSecondsPerFrame)
+                    {
+                        SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter,
+                                                                        Win32GetWallClock());
+                    }
+#if 0
                     real64 MSPerFrame = ((1000.0*(real64)CounterElapsed) / (real64)PerfCountFrequency);
                     real64 FPS = (real64)PerfCountFrequency / (real64)CounterElapsed;
                     real64 MCPF = ((real64)CyclesElapsed / (1000.0*1000.0));
 
-#if 0
                     char TimingDebug[256];
                     sprintf_s(TimingDebug, "%.02fms/f, %.02ff/s, %.02fMc/f\n", MSPerFrame, FPS, MCPF);
                     OutputDebugStringA(TimingDebug);
 #endif
-                    
-                    LastCounter = EndCounter;
-                    LastCycleCount = EndCycleCount;
 
                     game_input *Temp = NewInput;
                     NewInput = OldInput;
                     OldInput = Temp;
+
+                    LARGE_INTEGER EndCounter = Win32GetWallClock();
+                    LastCounter = EndCounter;
+
+                    uint64 EndCycleCount = __rdtsc();
+                    uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
+                    LastCycleCount = EndCycleCount;
                 }
 
                 ReleaseDC(Window, DeviceContext);
