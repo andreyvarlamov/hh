@@ -337,66 +337,7 @@ Win32MainWindowCallback(HWND Window,
         case WM_KEYDOWN:
         case WM_KEYUP:
         {
-            uint32 VKCode = (uint32)WParam;
-            bool WasDown = ((LParam & (1 <<  30)) != 0);
-            bool IsDown = ((LParam & (1 << 31)) == 0);
-
-            if (WasDown != IsDown)
-            {
-                if (VKCode == 'W')
-                {
-                }
-                else if (VKCode == 'A')
-                {
-                }
-                else if (VKCode == 'S')
-                {
-                }
-                else if (VKCode == 'D')
-                {
-                }
-                else if (VKCode == 'Q')
-                {
-                }
-                else if (VKCode == 'E')
-                {
-                }
-                else if (VKCode == VK_UP)
-                {
-                }
-                else if (VKCode == VK_LEFT)
-                {
-                }
-                else if (VKCode == VK_DOWN)
-                {
-                }
-                else if (VKCode == VK_RIGHT)
-                {
-                }
-                else if (VKCode == VK_ESCAPE)
-                {
-                    OutputDebugStringA("ESCAPE: ");
-                    if (IsDown)
-                    {
-                        OutputDebugStringA("IsDown");
-                    }
-                    if (WasDown)
-                    {
-                        OutputDebugStringA("WasDown");
-                    }
-                    OutputDebugStringA("\n");
-                }
-                else if (VKCode == VK_SPACE)
-                {
-                }
-            }
-
-            bool32 AltKeyWasDown = LParam & (1 << 29);
-            if ((VKCode == VK_F4) && AltKeyWasDown)
-            {
-                GlobalRunning = false;
-            }
-            
+            Assert(!"Keyboard input came in through a non-dispatch message!");
         } break;
 
         case WM_PAINT:
@@ -495,7 +436,14 @@ Win32FillSoundBuffer(win32_sound_output *SoundOutput, DWORD ByteToLock, DWORD By
 }
 
 internal void
-ProcessXInputDigitalButton(DWORD XInputButtonState,
+Win32ProcessKeyboardMessage(game_button_state *NewState, bool32 IsDown)
+{
+    NewState->EndedDown = IsDown;
+    NewState->HalfTransitionCount++;
+}
+
+internal void
+Win32ProcessXInputDigitalButton(DWORD XInputButtonState,
                            game_button_state *OldState, DWORD ButtonBit,
                            game_button_state *NewState)
 {
@@ -587,14 +535,89 @@ WinMain(HINSTANCE Instance,
                 
                     MSG Message;
 
+                    // TODO: Zeroing macro
+                    game_controller_input *KeyboardController = &NewInput->Controllers[0];
+                    game_controller_input ZeroController = {};
+                    *KeyboardController = ZeroController;
+
                     while(PeekMessage(&Message, 0, 0, 0, PM_REMOVE))
                     {
-                        if (Message.message == WM_QUIT)
+                        switch(Message.message)
                         {
-                            GlobalRunning = false;
+                            case WM_QUIT:
+                            {
+                                GlobalRunning = false;
+                            } break;
+                            
+                            case WM_SYSKEYDOWN:
+                            case WM_SYSKEYUP:
+                            case WM_KEYDOWN:
+                            case WM_KEYUP:
+                            {
+                                uint32 VKCode = (uint32)Message.wParam;
+                                bool WasDown = ((Message.lParam & (1 <<  30)) != 0);
+                                bool IsDown = ((Message.lParam & (1 << 31)) == 0);
+
+                                if (WasDown != IsDown)
+                                {
+                                    if (VKCode == 'W')
+                                    {
+                                    }
+                                    else if (VKCode == 'A')
+                                    {
+                                    }
+                                    else if (VKCode == 'S')
+                                    {
+                                    }
+                                    else if (VKCode == 'D')
+                                    {
+                                    }
+                                    else if (VKCode == 'Q')
+                                    {
+                                        Win32ProcessKeyboardMessage(&KeyboardController->LeftShoulder, IsDown);
+                                    }
+                                    else if (VKCode == 'E')
+                                    {
+                                        Win32ProcessKeyboardMessage(&KeyboardController->RightShoulder, IsDown);
+                                    }
+                                    else if (VKCode == VK_UP)
+                                    {
+                                        Win32ProcessKeyboardMessage(&KeyboardController->Up, IsDown);
+                                    }
+                                    else if (VKCode == VK_LEFT)
+                                    {
+                                        Win32ProcessKeyboardMessage(&KeyboardController->Left, IsDown);
+                                    }
+                                    else if (VKCode == VK_DOWN)
+                                    {
+                                        Win32ProcessKeyboardMessage(&KeyboardController->Down, IsDown);
+                                    }
+                                    else if (VKCode == VK_RIGHT)
+                                    {
+                                        Win32ProcessKeyboardMessage(&KeyboardController->Right, IsDown);
+                                    }
+                                    else if (VKCode == VK_ESCAPE)
+                                    {
+                                        GlobalRunning = false;
+                                    }
+                                    else if (VKCode == VK_SPACE)
+                                    {
+                                    }
+                                }
+
+                                bool32 AltKeyWasDown = Message.lParam & (1 << 29);
+                                if ((VKCode == VK_F4) && AltKeyWasDown)
+                                {
+                                    GlobalRunning = false;
+                                }
+                            } break;
+                            default:
+                            {
+                                TranslateMessage(&Message);
+                                DispatchMessage(&Message);
+                            } break;
                         }
-                        TranslateMessage(&Message);
-                        DispatchMessage(&Message);
+                        
                     }
                     DWORD MaxControllerCount = XUSER_MAX_COUNT;
                     if (MaxControllerCount > ArrayCount(NewInput->Controllers))
@@ -657,24 +680,24 @@ WinMain(HINSTANCE Instance,
                             NewController->MinX = NewController->MaxX = NewController->EndX = X;
                             NewController->MinY = NewController->MaxY = NewController->EndY = Y;
 
-                            ProcessXInputDigitalButton(Pad->wButtons,
-                                                       &OldController->Down, XINPUT_GAMEPAD_A,
-                                                       &NewController->Down);
-                            ProcessXInputDigitalButton(Pad->wButtons,
-                                                       &OldController->Right, XINPUT_GAMEPAD_B,
-                                                       &NewController->Right);
-                            ProcessXInputDigitalButton(Pad->wButtons,
-                                                       &OldController->Left, XINPUT_GAMEPAD_X,
-                                                       &NewController->Left);
-                            ProcessXInputDigitalButton(Pad->wButtons,
-                                                       &OldController->Up, XINPUT_GAMEPAD_Y,
-                                                       &NewController->Up);
-                            ProcessXInputDigitalButton(Pad->wButtons,
-                                                       &OldController->LeftShoulder, XINPUT_GAMEPAD_LEFT_SHOULDER,
-                                                       &NewController->LeftShoulder);
-                            ProcessXInputDigitalButton(Pad->wButtons,
-                                                       &OldController->RightShoulder, XINPUT_GAMEPAD_RIGHT_SHOULDER,
-                                                       &NewController->RightShoulder);
+                            Win32ProcessXInputDigitalButton(Pad->wButtons,
+                                                            &OldController->Down, XINPUT_GAMEPAD_A,
+                                                            &NewController->Down);
+                            Win32ProcessXInputDigitalButton(Pad->wButtons,
+                                                            &OldController->Right, XINPUT_GAMEPAD_B,
+                                                            &NewController->Right);
+                            Win32ProcessXInputDigitalButton(Pad->wButtons,
+                                                            &OldController->Left, XINPUT_GAMEPAD_X,
+                                                            &NewController->Left);
+                            Win32ProcessXInputDigitalButton(Pad->wButtons,
+                                                            &OldController->Up, XINPUT_GAMEPAD_Y,
+                                                            &NewController->Up);
+                            Win32ProcessXInputDigitalButton(Pad->wButtons,
+                                                            &OldController->LeftShoulder, XINPUT_GAMEPAD_LEFT_SHOULDER,
+                                                            &NewController->LeftShoulder);
+                            Win32ProcessXInputDigitalButton(Pad->wButtons,
+                                                            &OldController->RightShoulder, XINPUT_GAMEPAD_RIGHT_SHOULDER,
+                                                            &NewController->RightShoulder);
                         }
                         else
                         {
