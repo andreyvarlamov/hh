@@ -1029,6 +1029,7 @@ WinMain(HINSTANCE Instance,
                             if(XInputGetState(ControllerIndex, &ControllerState) == ERROR_SUCCESS)
                             {
                                 NewController->IsConnected = true;
+                                NewController->IsAnalog = OldController->IsAnalog;
                                 XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
 
                                 NewController->StickAverageX = Win32ProcessXInputStickValue(Pad->sThumbLX,
