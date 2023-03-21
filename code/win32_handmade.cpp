@@ -326,9 +326,8 @@ internal void
 Win32DisplayBufferInWindow(win32_offscreen_buffer *Buffer,
                            HDC DeviceContext, int WindowWidth, int WindowHeight)
 {
-    // TODO: Aspect ratio correction
     StretchDIBits(DeviceContext,
-                  0, 0, WindowWidth, WindowHeight,
+                  0, 0, Buffer->Width, Buffer->Height,
                   0, 0, Buffer->Width, Buffer->Height,
                   Buffer->Memory,
                   &Buffer->Info,
@@ -894,6 +893,18 @@ WinMain(HINSTANCE Instance,
     
     if(RegisterClassA(&WindowClass))
     {
+        RECT WindowRect;
+        WindowRect.left = 0;
+        WindowRect.top = 0;
+        WindowRect.right = 1280;
+        WindowRect.bottom = 720;
+
+        // TODO: Log failure instead of assert
+        Assert(AdjustWindowRect(&WindowRect, WS_OVERLAPPEDWINDOW|WS_VISIBLE, 0));
+
+        int WindowWidth = WindowRect.right - WindowRect.left;
+        int WindowHeight = WindowRect.bottom - WindowRect.top;
+                
         HWND Window =
             CreateWindowExA(WS_EX_TOPMOST|WS_EX_LAYERED,
                             WindowClass.lpszClassName,
@@ -901,8 +912,8 @@ WinMain(HINSTANCE Instance,
                             WS_OVERLAPPEDWINDOW|WS_VISIBLE,
                             CW_USEDEFAULT,
                             CW_USEDEFAULT,
-                            CW_USEDEFAULT,
-                            CW_USEDEFAULT,
+                            WindowWidth,//CW_USEDEFAULT,
+                            WindowHeight,//CW_USEDEFAULT,
                             0,
                             0,
                             Instance,
