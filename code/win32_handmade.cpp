@@ -129,7 +129,10 @@ Win32LoadGameCode(void)
 {
     win32_game_code Result = {};
 
-    CopyFile("handmade.exe", "handmade_temp.dll", FALSE);
+    // TODO: Need to get the proper path here
+    // TODO: Automatic determination of when updates are necessary
+
+    CopyFile("handmade.dll", "handmade_temp.dll", FALSE);
     Result.GameCodeDLL = LoadLibraryA("handmade_temp.dll");
     if (Result.GameCodeDLL)
     {
