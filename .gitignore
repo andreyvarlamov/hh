@@ -56,4 +56,4 @@ build/
 # Emacs auto-save files
 \#*#
 
-foo.hmi
+*.hmi

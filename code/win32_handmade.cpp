@@ -33,6 +33,67 @@ global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 
 #define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 typedef DIRECT_SOUND_CREATE(direct_sound_create);
+
+void
+CatStrings(size_t SourceACount, char *SourceA,
+           size_t SourceBCount, char *SourceB,
+           size_t DestCount, char *Dest)
+{
+    // TODO: Dest bounds checking
+    
+    for (int Index = 0;
+         Index < SourceACount;
+         ++Index)
+    {
+        *Dest++ = *SourceA++;
+    }
+
+    for (int Index = 0;
+         Index < SourceBCount;
+         ++Index)
+    {
+        *Dest++ = *SourceB++;
+    }
+
+    *Dest++ = 0;
+}
+
+internal void
+Win32GetEXEFilename(win32_state *State)
+{
+    DWORD SizeOfFilename = GetModuleFileNameA(0, State->EXEFilename, sizeof(State->EXEFilename));
+    State->OnePastLastEXEFilenameSlash = State->EXEFilename;
+    for (char *Scan = State->EXEFilename;
+         *Scan;
+         ++Scan)
+    {
+        if (*Scan == '\\')
+        {
+            State->OnePastLastEXEFilenameSlash = Scan + 1;
+        }
+    }
+}
+
+internal int
+StringLength(char *String)
+{
+    int Count = 0;
+    while (*String++)
+    {
+        ++Count;
+    }
+
+    return(Count);
+}
+
+internal void
+Win32BuildEXEPathFilename(win32_state *State, char *Filename,
+                          int DestCount, char *Dest)
+{
+    CatStrings(State->OnePastLastEXEFilenameSlash - State->EXEFilename, State->EXEFilename,
+               StringLength(Filename), Filename,
+               DestCount, Dest);
+}
     
 DEBUG_PLATFORM_FREE_FILE_MEMORY(DEBUGPlatformFreeFileMemory)
 {
@@ -511,11 +572,21 @@ Win32ProcessXInputStickValue(SHORT Value, SHORT DeadZoneThreshold)
 }
 
 internal void
+Win32GetInputFileLocation(win32_state *Win32State, int SlotIndex, int DestCount, char *Dest)
+{
+    // TODO: Use SlotIndex
+    Assert(SlotIndex == 1);
+    Win32BuildEXEPathFilename(Win32State, "loop_edit.hmi", DestCount, Dest);
+}
+
+internal void
 Win32BeginRecordingInput(win32_state *Win32State, int InputRecordingIndex)
 {
     Win32State->InputRecordingIndex = InputRecordingIndex;
 
-    char *Filename = "foo.hmi";
+    char Filename[WIN32_STATE_FILE_NAME_COUNT];
+    Win32GetInputFileLocation(Win32State, InputRecordingIndex, sizeof(Filename), Filename);
+
     Win32State->RecordingHandle =
         CreateFileA(Filename, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
 
@@ -538,7 +609,9 @@ Win32BeginInputPlayBack(win32_state *Win32State, int InputPlayingIndex)
 {
     Win32State->InputPlayingIndex = InputPlayingIndex;
 
-    char *Filename = "foo.hmi";
+    char Filename[WIN32_STATE_FILE_NAME_COUNT];
+    Win32GetInputFileLocation(Win32State, InputPlayingIndex, sizeof(Filename), Filename);
+
     Win32State->PlayBackHandle =
         CreateFileA(Filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
 
@@ -807,67 +880,6 @@ Win32DebugSyncDisplay(win32_offscreen_buffer *Backbuffer,
         Win32DrawSoundBufferMarker(Backbuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->FlipPlayCursor + 480*SoundOutput->BytesPerSample, PlayWindowColor);
         Win32DrawSoundBufferMarker(Backbuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->FlipWriteCursor, WriteColor);
     }
-}
-
-void
-CatStrings(size_t SourceACount, char *SourceA,
-           size_t SourceBCount, char *SourceB,
-           size_t DestCount, char *Dest)
-{
-    // TODO: Dest bounds checking
-    
-    for (int Index = 0;
-         Index < SourceACount;
-         ++Index)
-    {
-        *Dest++ = *SourceA++;
-    }
-
-    for (int Index = 0;
-         Index < SourceBCount;
-         ++Index)
-    {
-        *Dest++ = *SourceB++;
-    }
-
-    *Dest++ = 0;
-}
-
-internal void
-Win32GetEXEFilename(win32_state *State)
-{
-    DWORD SizeOfFilename = GetModuleFileNameA(0, State->EXEFilename, sizeof(State->EXEFilename));
-    State->OnePastLastEXEFilenameSlash = State->EXEFilename;
-    for (char *Scan = State->EXEFilename;
-         *Scan;
-         ++Scan)
-    {
-        if (*Scan == '\\')
-        {
-            State->OnePastLastEXEFilenameSlash = Scan + 1;
-        }
-    }
-}
-
-internal int
-StringLength(char *String)
-{
-    int Count = 0;
-    while (*String++)
-    {
-        ++Count;
-    }
-
-    return(Count);
-}
-
-internal void
-Win32BuildEXEPathFilename(win32_state *State, char *Filename,
-                          int DestCount, char *Dest)
-{
-    CatStrings(State->OnePastLastEXEFilenameSlash - State->EXEFilename, State->EXEFilename,
-               StringLength(Filename), Filename,
-               DestCount, Dest);
 }
 
 int CALLBACK
