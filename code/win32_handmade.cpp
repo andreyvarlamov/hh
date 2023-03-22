@@ -915,11 +915,6 @@ WinMain(HINSTANCE Instance,
     //WindowClass.hIcon;
     WindowClass.lpszClassName = "HandmadeHeroWindowClass";
 
-    // TODO: How to query this on Windows reliably?
-#define MonitorRefreshHz 60
-#define GameUpdateHz (MonitorRefreshHz / 2)
-    real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
-    
     if(RegisterClassA(&WindowClass))
     {
         RECT WindowRect;
@@ -928,8 +923,10 @@ WinMain(HINSTANCE Instance,
         WindowRect.right = 1280;
         WindowRect.bottom = 720;
 
+        DWORD OverlappedStyle = (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX);
+        // (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
         // TODO: Log failure instead of assert
-        Assert(AdjustWindowRect(&WindowRect, WS_OVERLAPPEDWINDOW|WS_VISIBLE, 0));
+        Assert(AdjustWindowRect(&WindowRect, OverlappedStyle|WS_VISIBLE, 0));
 
         int WindowWidth = WindowRect.right - WindowRect.left;
         int WindowHeight = WindowRect.bottom - WindowRect.top;
@@ -938,11 +935,13 @@ WinMain(HINSTANCE Instance,
             CreateWindowExA(0,//WS_EX_TOPMOST|WS_EX_LAYERED,
                             WindowClass.lpszClassName,
                             "Handmade Hero",
-                            WS_OVERLAPPEDWINDOW|WS_VISIBLE,
+                            OverlappedStyle|WS_VISIBLE,
                             CW_USEDEFAULT,
                             CW_USEDEFAULT,
-                            WindowWidth,//CW_USEDEFAULT,
-                            WindowHeight,//CW_USEDEFAULT,
+                            WindowWidth,
+                            WindowHeight,
+                            // CW_USEDEFAULT,
+                            // CW_USEDEFAULT,
                             0,
                             0,
                             Instance,
@@ -950,16 +949,27 @@ WinMain(HINSTANCE Instance,
 
         if(Window)
         {
+            HDC RefreshDC = GetDC(Window);
+            int MonitorRefreshHz = 60;
+#if 0
+            int Win32RefreshHz = GetDeviceCaps(RefreshDC, VREFRESH);
+            if (Win32RefreshHz > 1)
+            {
+                MonitorRefreshHz = Win32RefreshHz;
+            }
+#endif
+            real32 GameUpdateHz = (MonitorRefreshHz / 2.0f);
+            real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
+            ReleaseDC(Window, RefreshDC);
+            
             win32_sound_output SoundOutput = {};
             
             SoundOutput.SamplesPerSecond = 48000;
             SoundOutput.BytesPerSample = sizeof(int16)*2;
             SoundOutput.SecondaryBufferSize = SoundOutput.SamplesPerSecond*SoundOutput.BytesPerSample;
-            // TODO: Get rid of LatencySampleCount
-            SoundOutput.LatencySampleCount = 3*(SoundOutput.SamplesPerSecond / GameUpdateHz);
             // TODO: Actually compute this variance and see what the lowest reasonable value would be
             SoundOutput.SafetyBytes =
-                (SoundOutput.SamplesPerSecond*SoundOutput.BytesPerSample / GameUpdateHz)/3;
+                (int)(((real32)SoundOutput.SamplesPerSecond*(real32)SoundOutput.BytesPerSample / GameUpdateHz) / 3.0f);
             Win32InitDSound(Window, SoundOutput.SamplesPerSecond, SoundOutput.SecondaryBufferSize);
             Win32ClearSoundBuffer(&SoundOutput);
             GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
@@ -1012,7 +1022,7 @@ WinMain(HINSTANCE Instance,
 
 #if HANDMADE_INTERNAL
                 int DebugTimeMarkerIndex = 0;
-                win32_debug_time_marker DebugTimeMarkers[GameUpdateHz / 2] = {0};
+                win32_debug_time_marker DebugTimeMarkers[30] = {0};
 #endif
 
                 DWORD AudioLatencyBytes = 0;
@@ -1221,8 +1231,9 @@ WinMain(HINSTANCE Instance,
                             DWORD ByteToLock = ((SoundOutput.RunningSampleIndex*SoundOutput.BytesPerSample) %
                                                 SoundOutput.SecondaryBufferSize);
 
-                            DWORD ExpectedSoundBytesPerFrame =
-                                (SoundOutput.SamplesPerSecond*SoundOutput.BytesPerSample) / GameUpdateHz;
+                            DWORD ExpectedSoundBytesPerFrame = (int)((real32
+                                                                     (SoundOutput.SamplesPerSecond*SoundOutput.BytesPerSample) /
+                                                                      GameUpdateHz));
                             real32 SecondsLeftUntilFlip = (TargetSecondsPerFrame - FromBeginToAudioSeconds);
                             DWORD ExpectedBytesUntilFlip = (DWORD)((SecondsLeftUntilFlip/TargetSecondsPerFrame)*(real32)ExpectedSoundBytesPerFrame);
                             
