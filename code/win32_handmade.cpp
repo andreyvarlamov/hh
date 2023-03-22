@@ -125,7 +125,7 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGPlatformReadEntireFile)
                 }
                 else
                 {
-                    DEBUGPlatformFreeFileMemory(Result.Contents);
+                    DEBUGPlatformFreeFileMemory(Thread, Result.Contents);
                     Result.Contents = 0;
                 }
             }
@@ -534,9 +534,11 @@ Win32FillSoundBuffer(win32_sound_output *SoundOutput, DWORD ByteToLock, DWORD By
 internal void
 Win32ProcessKeyboardMessage(game_button_state *NewState, bool32 IsDown)
 {
-    Assert(NewState->EndedDown != IsDown);
-    NewState->EndedDown = IsDown;
-    ++NewState->HalfTransitionCount;
+    if (NewState->EndedDown != IsDown)
+    {
+        NewState->EndedDown = IsDown;
+        ++NewState->HalfTransitionCount;
+    }
 }
 
 internal void
@@ -1059,6 +1061,28 @@ WinMain(HINSTANCE Instance,
 
                     if (!GlobalPause)
                     {
+                        POINT MouseP;
+                        GetCursorPos(&MouseP);
+                        ScreenToClient(Window, &MouseP);
+                        NewInput->MouseX = MouseP.x;
+                        NewInput->MouseY = MouseP.y;
+                        NewInput->MouseZ = 0; // TODO: Support mouse wheel?
+
+                        Win32ProcessKeyboardMessage(&NewInput->MouseButtons[0],
+                                                    GetKeyState(VK_LBUTTON) & (1 << 15));
+                        Win32ProcessKeyboardMessage(&NewInput->MouseButtons[1],
+                                                    GetKeyState(VK_MBUTTON) & (1 << 15));
+                        Win32ProcessKeyboardMessage(&NewInput->MouseButtons[2],
+                                                    GetKeyState(VK_RBUTTON) & (1 << 15));
+                        Win32ProcessKeyboardMessage(&NewInput->MouseButtons[3],
+                                                    GetKeyState(VK_XBUTTON1) & (1 << 15));
+                        Win32ProcessKeyboardMessage(&NewInput->MouseButtons[4],
+                                                    GetKeyState(VK_XBUTTON2) & (1 << 15));
+                        GetKeyState(VK_MBUTTON);
+                        GetKeyState(VK_RBUTTON);
+                        GetKeyState(VK_XBUTTON1);
+                        GetKeyState(VK_XBUTTON2);
+                        
                         DWORD MaxControllerCount = XUSER_MAX_COUNT;
                         if (MaxControllerCount > (ArrayCount(NewInput->Controllers) - 1))
                         {
@@ -1162,6 +1186,8 @@ WinMain(HINSTANCE Instance,
                             }
                         }
 
+                        thread_context Thread = {};
+                        
                         game_offscreen_buffer Buffer = {};
                         Buffer.Memory = GlobalBackbuffer.Memory;
                         Buffer.Width = GlobalBackbuffer.Width;
@@ -1181,7 +1207,7 @@ WinMain(HINSTANCE Instance,
 
                         if (Game.UpdateAndRender)
                         {
-                            Game.UpdateAndRender(&GameMemory, NewInput, &Buffer);
+                            Game.UpdateAndRender(&Thread, &GameMemory, NewInput, &Buffer);
                         }
 
                         LARGE_INTEGER AudioWallClock = Win32GetWallClock();
@@ -1279,7 +1305,7 @@ WinMain(HINSTANCE Instance,
 
                             if (Game.GetSoundSamples)
                             {
-                                Game.GetSoundSamples(&GameMemory, &SoundBuffer);
+                                Game.GetSoundSamples(&Thread, &GameMemory, &SoundBuffer);
                             }
 
 #if HANDMADE_INTERNAL
