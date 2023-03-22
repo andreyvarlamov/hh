@@ -1050,12 +1050,12 @@ WinMain(HINSTANCE Instance,
                 ReplayBuffer->FileHandle = 
                     CreateFileA(ReplayBuffer->Filename, GENERIC_READ|GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
 
-                DWORD MaxSizeHigh = (Win32State.TotalSize >> 32);
-                DWORD MaxSizeLow = (Win32State.TotalSize & 0xFFFFFFFF);
+                LARGE_INTEGER MaxSize;
+                MaxSize.QuadPart = Win32State.TotalSize;
                 ReplayBuffer->MemoryMap = CreateFileMapping(ReplayBuffer->FileHandle, 0,
                                                             PAGE_READWRITE,
-                                                            MaxSizeHigh,
-                                                            MaxSizeLow,
+                                                            MaxSize.HighPart,
+                                                            MaxSize.LowPart,
                                                             0);
                 
                 ReplayBuffer->MemoryBlock = MapViewOfFile(ReplayBuffer->MemoryMap,
@@ -1387,13 +1387,14 @@ WinMain(HINSTANCE Instance,
                             AudioLatencySeconds =
                                 (((real32)AudioLatencyBytes / (real32)SoundOutput.BytesPerSample) /
                                  (real32)SoundOutput.SamplesPerSecond);
-                        
+#if 0
                             char TextBuffer[256];
                             _snprintf_s(TextBuffer, sizeof(TextBuffer),
                                         "BTL: %u TC: %u BTW: %u - PC: %u WC: %u DELTA: %u (%fs)\n",
                                         ByteToLock, TargetCursor, BytesToWrite,
                                         PlayCursor, WriteCursor, AudioLatencyBytes, AudioLatencySeconds);
                             OutputDebugStringA(TextBuffer);
+#endif
 #endif
                             Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
                         }
@@ -1445,7 +1446,6 @@ WinMain(HINSTANCE Instance,
 
                         LARGE_INTEGER EndCounter = Win32GetWallClock();
                         real64 MSPerFrame = 1000.0*Win32GetSecondsElapsed(LastCounter, EndCounter);
-                        real64 FPS = 0.0f;
                         LastCounter = EndCounter;
 
                         win32_window_dimension Dimension = Win32GetWindowDimension(Window) ;
@@ -1481,6 +1481,7 @@ WinMain(HINSTANCE Instance,
                         NewInput = OldInput;
                         OldInput = Temp;
 
+#if 0
                         uint64 EndCycleCount = __rdtsc();
                         uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
                         LastCycleCount = EndCycleCount;
@@ -1490,6 +1491,7 @@ WinMain(HINSTANCE Instance,
                         sprintf_s(FPSBuffer, "%.02fms/f, %.02ff/s, %.02fMc/f, Work=%.02fms, Spins=%llu\n",
                                   MSPerFrame, FPS, MCPF, 1000.0f*WorkSecondsElapsed, Spins);
                         OutputDebugStringA(FPSBuffer);
+#endif
 
 #if HANDMADE_INTERNAL
                         ++DebugTimeMarkerIndex;
