@@ -802,6 +802,7 @@ Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
     return(Result);
 }
 
+#if 0
 internal void
 Win32DebugDrawVertical(win32_offscreen_buffer *Backbuffer,
                        int X, int Top, int Bottom, uint32 Color)
@@ -900,6 +901,7 @@ Win32DebugSyncDisplay(win32_offscreen_buffer *Backbuffer,
         Win32DrawSoundBufferMarker(Backbuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->FlipWriteCursor, WriteColor);
     }
 }
+#endif
 
 int CALLBACK
 WinMain(HINSTANCE Instance,
@@ -1450,9 +1452,9 @@ WinMain(HINSTANCE Instance,
 
 #if HANDMADE_INTERNAL
                         // TODO: Note, current is wrong on the zero'th index;
-                        Win32DebugSyncDisplay(&GlobalBackbuffer,
-                                              ArrayCount(DebugTimeMarkers), DebugTimeMarkers,
-                                              DebugTimeMarkerIndex - 1, &SoundOutput, TargetSecondsPerFrame);
+                        // Win32DebugSyncDisplay(&GlobalBackbuffer,
+                        //                       ArrayCount(DebugTimeMarkers), DebugTimeMarkers,
+                        //                       DebugTimeMarkerIndex - 1, &SoundOutput, TargetSecondsPerFrame);
 #endif
                         
                         HDC DeviceContext = GetDC(Window);

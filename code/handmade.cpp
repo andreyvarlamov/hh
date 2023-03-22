@@ -11,7 +11,7 @@ GameOutputSound(game_state *GameState, game_sound_output_buffer *SoundBuffer, in
          SampleIndex < SoundBuffer->SampleCount;
          ++SampleIndex)
     {
-#if 0
+#if 1
         real32 SineValue = sinf(GameState->tSine);
         int16 SampleValue = (int16)(SineValue * ToneVolume);
 #else
@@ -173,6 +173,8 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             RenderPlayer(Buffer, 10 + 20*ButtonIndex, 10);
         }
     }
+
+    RenderPlayer(Buffer, Input->MouseX, Input->MouseY);
 }
 
 extern "C"
