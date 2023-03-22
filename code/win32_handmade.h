@@ -51,6 +51,8 @@ struct win32_game_code
     bool32 IsValid;
 };
 
+// NOTE: Never use MAX_PATH in user-facing code, because it can be dangerous
+#define WIN32_STATE_FILE_NAME_COUNT MAX_PATH
 struct win32_state
 {
     uint64 TotalSize;
@@ -61,6 +63,9 @@ struct win32_state
 
     HANDLE PlayBackHandle;
     int InputPlayingIndex;
+
+    char EXEFilename[WIN32_STATE_FILE_NAME_COUNT];
+    char *OnePastLastEXEFilenameSlash;
 };
 
 #define WIN32_HANDMADE_H

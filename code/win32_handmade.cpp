@@ -833,37 +833,60 @@ CatStrings(size_t SourceACount, char *SourceA,
     *Dest++ = 0;
 }
 
+internal void
+Win32GetEXEFilename(win32_state *State)
+{
+    DWORD SizeOfFilename = GetModuleFileNameA(0, State->EXEFilename, sizeof(State->EXEFilename));
+    State->OnePastLastEXEFilenameSlash = State->EXEFilename;
+    for (char *Scan = State->EXEFilename;
+         *Scan;
+         ++Scan)
+    {
+        if (*Scan == '\\')
+        {
+            State->OnePastLastEXEFilenameSlash = Scan + 1;
+        }
+    }
+}
+
+internal int
+StringLength(char *String)
+{
+    int Count = 0;
+    while (*String++)
+    {
+        ++Count;
+    }
+
+    return(Count);
+}
+
+internal void
+Win32BuildEXEPathFilename(win32_state *State, char *Filename,
+                          int DestCount, char *Dest)
+{
+    CatStrings(State->OnePastLastEXEFilenameSlash - State->EXEFilename, State->EXEFilename,
+               StringLength(Filename), Filename,
+               DestCount, Dest);
+}
+
 int CALLBACK
 WinMain(HINSTANCE Instance,
         HINSTANCE PrevInstance,
         LPSTR CommandLine,
         int ShowCode)
 {
-    // NOTE: Never use MAX_PATH in user-facing code, because it can be dangerous
-    char EXEFilename[MAX_PATH];
-    DWORD SizeOfFilename = GetModuleFileNameA(0, EXEFilename, sizeof(EXEFilename));
-    char *OnePastLastSlash = EXEFilename;
-    for (char *Scan = EXEFilename;
-         *Scan;
-         ++Scan)
-    {
-        if (*Scan == '\\')
-        {
-            OnePastLastSlash = Scan + 1;
-        }
-    }
+    win32_state Win32State = {};
+            
+    Win32GetEXEFilename(&Win32State);
+    
+    char SourceGameCodeDLLFullPath[WIN32_STATE_FILE_NAME_COUNT];
+    Win32BuildEXEPathFilename(&Win32State, "handmade.dll",
+                              sizeof(SourceGameCodeDLLFullPath), SourceGameCodeDLLFullPath);
 
-    char SourceGameCodeDLLFilename[] = "handmade.dll";
-    char SourceGameCodeDLLFullPath[MAX_PATH];
-    CatStrings(OnePastLastSlash - EXEFilename, EXEFilename,
-               sizeof(SourceGameCodeDLLFilename) - 1, SourceGameCodeDLLFilename,
-               sizeof(SourceGameCodeDLLFullPath), SourceGameCodeDLLFullPath);
-               
-    char TempGameCodeDLLFilename[] = "handmade_temp.dll";
     char TempGameCodeDLLFullPath[MAX_PATH];
-    CatStrings(OnePastLastSlash - EXEFilename, EXEFilename,
-               sizeof(TempGameCodeDLLFilename) - 1, TempGameCodeDLLFilename,
-               sizeof(TempGameCodeDLLFullPath), TempGameCodeDLLFullPath);
+    Win32BuildEXEPathFilename(&Win32State, "handmade_temp.dll",
+                              sizeof(TempGameCodeDLLFullPath), TempGameCodeDLLFullPath);
 
     LARGE_INTEGER PerfCountFrequencyResult;
     QueryPerformanceFrequency(&PerfCountFrequencyResult);
@@ -935,8 +958,6 @@ WinMain(HINSTANCE Instance,
             Win32ClearSoundBuffer(&SoundOutput);
             GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
-            win32_state Win32State = {};
-            
             GlobalRunning = true;
 #if 0
             // NOTE: This tests the PlayCursor/WriteCursor update frequency
