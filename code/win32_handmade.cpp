@@ -211,12 +211,6 @@ Win32LoadGameCode(char *SourceDLLName, char *TempDLLName)
                           Result.GetSoundSamples);
     }
 
-    if (!Result.IsValid)
-    {
-        Result.UpdateAndRender = GameUpdateAndRenderStub;
-        Result.GetSoundSamples = GameGetSoundSamplesStub;
-    }
-
     return(Result);
 }
 
@@ -230,8 +224,8 @@ Win32UnloadGameCode(win32_game_code *GameCode)
     }
 
     GameCode->IsValid = false;
-    GameCode->UpdateAndRender = GameUpdateAndRenderStub;
-    GameCode->GetSoundSamples = GameGetSoundSamplesStub;
+    GameCode->UpdateAndRender = 0;
+    GameCode->GetSoundSamples = 0;
 }
 
 internal void
@@ -1174,7 +1168,11 @@ WinMain(HINSTANCE Instance,
                         {
                             Win32PlayBackInput(&Win32State, NewInput);
                         }
-                        Game.UpdateAndRender(&GameMemory, NewInput, &Buffer);
+
+                        if (Game.UpdateAndRender)
+                        {
+                            Game.UpdateAndRender(&GameMemory, NewInput, &Buffer);
+                        }
 
                         LARGE_INTEGER AudioWallClock = Win32GetWallClock();
                         real32 FromBeginToAudioSeconds = 1000.0f*Win32GetSecondsElapsed(FlipWallClock, AudioWallClock);
@@ -1267,7 +1265,11 @@ WinMain(HINSTANCE Instance,
                             SoundBuffer.SamplesPerSecond = SoundOutput.SamplesPerSecond;
                             SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
                             SoundBuffer.Samples = Samples;
-                            Game.GetSoundSamples(&GameMemory, &SoundBuffer);
+
+                            if (Game.GetSoundSamples)
+                            {
+                                Game.GetSoundSamples(&GameMemory, &SoundBuffer);
+                            }
 
 #if HANDMADE_INTERNAL
                             win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkerIndex];

@@ -3,7 +3,8 @@
 set CompilerFlags=-MTd -nologo -Gm- -GR- -EHa- -Od -Oi -WX -W4 -wd4201 -wd4100 -wd4189 -DHANDMADE_INTERNAL=1 -DHANDMADE_SLOW=1 -FC -Z7
 set LinkerFlags=-incremental:no -opt:ref
 set LinkLibs=user32.lib Gdi32.lib winmm.lib
-set HandmadePDBName=handmade_%date:~-4,4%%date:~-10,2%%date:~-7,2%%time:~0,2%%time:~3,2%%time:~6,2%.pdb
+REM set HandmadePDBName=handmade_%date:~-4,4%%date:~-10,2%%date:~-7,2%%time:~0,2%%time:~3,2%%time:~6,2%.pdb
+set HandmadePDBName=handmade_%random%.pdb
 
 IF NOT EXIST ..\build mkdir ..\build
 pushd ..\build

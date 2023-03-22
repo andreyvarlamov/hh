@@ -45,6 +45,9 @@ struct win32_game_code
 {
     HMODULE GameCodeDLL;
     FILETIME DLLLastWriteTime;
+
+    // IMPORTANT: Either of the callbacks can be 0!
+    // You must check before calling
     game_update_and_render *UpdateAndRender;
     game_get_sound_samples *GetSoundSamples;
 
