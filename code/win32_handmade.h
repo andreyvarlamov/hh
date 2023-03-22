@@ -56,10 +56,18 @@ struct win32_game_code
 
 // NOTE: Never use MAX_PATH in user-facing code, because it can be dangerous
 #define WIN32_STATE_FILE_NAME_COUNT MAX_PATH
+
+struct win32_replay_buffer
+{
+    char ReplayFileName[WIN32_STATE_FILE_NAME_COUNT];
+    void *MemoryBlock;
+};
+
 struct win32_state
 {
     uint64 TotalSize;
     void *GameMemoryBlock;
+    win32_replay_buffer ReplayBuffers[4];
     
     HANDLE RecordingHandle;
     int InputRecordingIndex;
@@ -67,6 +75,7 @@ struct win32_state
     HANDLE PlayBackHandle;
     int InputPlayingIndex;
 
+    
     char EXEFilename[WIN32_STATE_FILE_NAME_COUNT];
     char *OnePastLastEXEFilenameSlash;
 };
