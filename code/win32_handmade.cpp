@@ -180,13 +180,11 @@ inline FILETIME
 Win32GetLastWriteTime(char *Filename)
 {
     FILETIME LastWriteTime = {};
-    
-    WIN32_FIND_DATA FindData;
-    HANDLE FindHandle = FindFirstFileA(Filename, &FindData);
-    if (FindHandle != INVALID_HANDLE_VALUE)
+
+    WIN32_FILE_ATTRIBUTE_DATA Data;
+    if(GetFileAttributesEx(Filename, GetFileExInfoStandard, &Data))
     {
-        LastWriteTime = FindData.ftLastWriteTime;
-        FindClose(FindHandle);
+        LastWriteTime = Data.ftLastWriteTime;
     }
 
     return(LastWriteTime);
@@ -417,6 +415,7 @@ Win32MainWindowCallback(HWND Window,
 
         case WM_ACTIVATEAPP:
         {
+#if 0
             if (WParam)
             {
                 SetLayeredWindowAttributes(Window, RGB(0, 0, 0), 255, LWA_ALPHA);
@@ -425,6 +424,7 @@ Win32MainWindowCallback(HWND Window,
             {
                 SetLayeredWindowAttributes(Window, RGB(0, 0, 0), 64, LWA_ALPHA);
             }
+#endif
             OutputDebugStringA("WM_ACTIVATEAPP\n");
         } break;
 
@@ -941,7 +941,7 @@ WinMain(HINSTANCE Instance,
         int WindowHeight = WindowRect.bottom - WindowRect.top;
                 
         HWND Window =
-            CreateWindowExA(WS_EX_TOPMOST|WS_EX_LAYERED,
+            CreateWindowExA(0,//WS_EX_TOPMOST|WS_EX_LAYERED,
                             WindowClass.lpszClassName,
                             "Handmade Hero",
                             WS_OVERLAPPEDWINDOW|WS_VISIBLE,
