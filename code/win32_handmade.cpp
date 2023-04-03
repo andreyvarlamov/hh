@@ -379,8 +379,16 @@ internal void
 Win32DisplayBufferInWindow(win32_offscreen_buffer *Buffer,
                            HDC DeviceContext, int WindowWidth, int WindowHeight)
 {
+    int OffsetX = 10;
+    int OffsetY = 10;
+    
+    PatBlt(DeviceContext, 0, 0, WindowWidth, OffsetY, BLACKNESS);
+    PatBlt(DeviceContext, 0, Buffer->Height, WindowWidth, WindowHeight, BLACKNESS);
+    PatBlt(DeviceContext, 0, 0, OffsetX, WindowHeight, BLACKNESS);
+    PatBlt(DeviceContext, Buffer->Width, 0, WindowWidth, WindowHeight, BLACKNESS);
+
     StretchDIBits(DeviceContext,
-                  0, 0, Buffer->Width, Buffer->Height,
+                  OffsetX, OffsetY, Buffer->Width, Buffer->Height,
                   0, 0, Buffer->Width, Buffer->Height,
                   Buffer->Memory,
                   &Buffer->Info,
@@ -397,10 +405,6 @@ Win32MainWindowCallback(HWND Window,
 
     switch (Message)
     {
-        case WM_SIZE:
-        {
-        } break;
-
         case WM_CLOSE:
         {
             GlobalRunning = false;
@@ -944,31 +948,32 @@ WinMain(HINSTANCE Instance,
 
     if(RegisterClassA(&WindowClass))
     {
-        RECT WindowRect;
-        WindowRect.left = 0;
-        WindowRect.top = 0;
-        WindowRect.right = 960;
-        WindowRect.bottom = 540;
+        // RECT WindowRect;
+        // WindowRect.left = 0;
+        // WindowRect.top = 0;
+        // WindowRect.right = 960;
+        // WindowRect.bottom = 540;
 
-        DWORD OverlappedStyle = (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX);
-        // (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
-        // TODO: Log failure instead of assert
-        Assert(AdjustWindowRect(&WindowRect, OverlappedStyle|WS_VISIBLE, 0));
+        // DWORD OverlappedStyle = (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX);
+        // // (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
+        // // TODO: Log failure instead of assert
+        // Assert(AdjustWindowRect(&WindowRect, OverlappedStyle|WS_VISIBLE, 0));
 
-        int WindowWidth = WindowRect.right - WindowRect.left;
-        int WindowHeight = WindowRect.bottom - WindowRect.top;
+        // int WindowWidth = WindowRect.right - WindowRect.left;
+        // int WindowHeight = WindowRect.bottom - WindowRect.top;
                 
         HWND Window =
             CreateWindowExA(0,//WS_EX_TOPMOST|WS_EX_LAYERED,
                             WindowClass.lpszClassName,
                             "Handmade Hero",
-                            OverlappedStyle|WS_VISIBLE,
+                            //OverlappedStyle|WS_VISIBLE,
+                            WS_OVERLAPPEDWINDOW|WS_VISIBLE,
                             CW_USEDEFAULT,
                             CW_USEDEFAULT,
-                            WindowWidth,
-                            WindowHeight,
-                            // CW_USEDEFAULT,
-                            // CW_USEDEFAULT,
+                            // WindowWidth,
+                            // WindowHeight,
+                            CW_USEDEFAULT,
+                            CW_USEDEFAULT,
                             0,
                             0,
                             Instance,
