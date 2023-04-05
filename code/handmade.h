@@ -54,6 +54,11 @@ inline game_controller_input *GetController(game_input *Input, int unsigned Cont
 
 struct tile_map
 {
+    uint32 *Tiles;
+};
+
+struct world
+{
     int32 CountX;
     int32 CountY;
     
@@ -62,20 +67,18 @@ struct tile_map
     real32 TileWidth;
     real32 TileHeight;
 
-    uint32 *Tiles;
-};
-
-struct world
-{
     // TODO: Beginner's sparseness
-    int32 CountX;
-    int32 CountY;
+    int32 TileMapCountX;
+    int32 TileMapCountY;
     
     tile_map *TileMaps;
 };
 
 struct game_state
 {
+    int32 PlayerTileMapX;
+    int32 PlayerTileMapY;
+    
     real32 PlayerX;
     real32 PlayerY;
 };
