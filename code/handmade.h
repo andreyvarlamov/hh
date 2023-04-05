@@ -52,6 +52,29 @@ inline game_controller_input *GetController(game_input *Input, int unsigned Cont
 //
 //
 
+struct canonical_position
+{
+    int32 TileMapX;
+    int32 TileMapY;
+
+    int32 TileX;
+    int32 TileY;
+
+    // NOTE: Tile-relative X and Y
+    real32 TileRelX;
+    real32 TileRelY;
+};
+
+struct raw_position
+{
+    int32 TileMapX;
+    int32 TileMapY;
+
+    // NOTE: Tile-map-relative X and Y
+    real32 X;
+    real32 Y;
+};
+
 struct tile_map
 {
     uint32 *Tiles;
