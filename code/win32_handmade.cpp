@@ -582,6 +582,7 @@ Win32GetInputFileLocation(win32_state *Win32State, bool32 InputStream, int SlotI
 internal win32_replay_buffer *
 Win32GetReplayBuffer(win32_state *Win32State, int unsigned Index)
 {
+    Assert(Index > 0);
     Assert(Index < ArrayCount(Win32State->ReplayBuffers));
     win32_replay_buffer *Result = &Win32State->ReplayBuffers[Index];
     return(Result);
@@ -1043,7 +1044,7 @@ WinMain(HINSTANCE Instance,
             GameMemory.DEBUGPlatformReadEntireFile = DEBUGPlatformReadEntireFile;
             GameMemory.DEBUGPlatformWriteEntireFile = DEBUGPlatformWriteEntireFile;
 
-            for (int ReplayIndex = 0;
+            for (int ReplayIndex = 1;
                  ReplayIndex < ArrayCount(Win32State.ReplayBuffers);
                  ++ReplayIndex)
             {

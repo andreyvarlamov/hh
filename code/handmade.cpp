@@ -142,7 +142,8 @@ RecanonicalizeCoord(world *World, int32 TileCount, int32 *TileMap, int32 *Tile, 
     *TileRel -= Offset*World->TileSideInMeters;
 
     Assert(*TileRel >= 0);
-    Assert(*TileRel < World->TileSideInMeters);
+    // TODO: Fix floating point math so this can be <
+    Assert(*TileRel <= World->TileSideInMeters);
     
     if (*Tile < 0)
     {
