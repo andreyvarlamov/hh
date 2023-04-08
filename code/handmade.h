@@ -52,22 +52,19 @@ inline game_controller_input *GetController(game_input *Input, int unsigned Cont
 //
 //
 
-struct canonical_position
+struct tile_chunk_position
 {
-    // TODO: Take the tile map x and y and the tile x and y
-    // and pack them into single 32-bit values for x and y
-    // where there is some low bits for the tile index
-    // and the hight bits are the tile "page"
-#if 1
-    int32 TileMapX;
-    int32 TileMapY;
+    uint32 TileChunkX;
+    uint32 TileChunkY;
 
-    int32 TileX;
-    int32 TileY;
-#else
-    uint32 _TileX;
-    uint32 _TileY;
-#endif
+    uint32 RelTileX;
+    uint32 RelTileY;
+};
+
+struct world_position
+{
+    uint32 AbsTileX;
+    uint32 AbsTileY;
 
     // NOTE: Tile-relative X and Y
     // TODO: Should these be from the center of tile?
@@ -75,33 +72,31 @@ struct canonical_position
     real32 TileRelY;
 };
 
-struct tile_map
+struct tile_chunk
 {
     uint32 *Tiles;
 };
 
 struct world
 {
+    uint32 ChunkShift;
+    uint32 ChunkMask;
+    uint32 ChunkDim;
+    
     real32 TileSideInMeters;
     int32 TileSideInPixels;
     real32 MetersToPixels;
-    
-    int32 CountX;
-    int32 CountY;
-    
-    real32 UpperLeftX;
-    real32 UpperLeftY;
 
     // TODO: Beginner's sparseness
-    int32 TileMapCountX;
-    int32 TileMapCountY;
+    int32 TileChunkCountX;
+    int32 TileChunkCountY;
     
-    tile_map *TileMaps;
+    tile_chunk *TileChunks;
 };
 
 struct game_state
 {
-    canonical_position PlayerP;
+    world_position PlayerP;
 };
 
 #define HANDMADE_H
