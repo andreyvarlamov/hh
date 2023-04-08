@@ -58,27 +58,21 @@ struct canonical_position
     // and pack them into single 32-bit values for x and y
     // where there is some low bits for the tile index
     // and the hight bits are the tile "page"
+#if 1
     int32 TileMapX;
     int32 TileMapY;
 
     int32 TileX;
     int32 TileY;
+#else
+    uint32 _TileX;
+    uint32 _TileY;
+#endif
 
-    // TODO: Convert these to math-friendly, resolution-independent
-    // representation of world units relative to a tile
     // NOTE: Tile-relative X and Y
+    // TODO: Should these be from the center of tile?
     real32 TileRelX;
     real32 TileRelY;
-};
-
-struct raw_position
-{
-    int32 TileMapX;
-    int32 TileMapY;
-
-    // NOTE: Tile-map-relative X and Y
-    real32 X;
-    real32 Y;
 };
 
 struct tile_map
@@ -90,6 +84,7 @@ struct world
 {
     real32 TileSideInMeters;
     int32 TileSideInPixels;
+    real32 MetersToPixels;
     
     int32 CountX;
     int32 CountY;
@@ -106,11 +101,7 @@ struct world
 
 struct game_state
 {
-    int32 PlayerTileMapX;
-    int32 PlayerTileMapY;
-    
-    real32 PlayerX;
-    real32 PlayerY;
+    canonical_position PlayerP;
 };
 
 #define HANDMADE_H
